@@ -42,7 +42,7 @@ function displayProducts() {
               [res[i].id, res[i].product_name, res[i].department_name, res[i].price, res[i].stock_quantity]
             );
         }
-        console.log(table.toString());
+        console.log(table.toString() + "\n");
         buyItem();
       });
 
@@ -77,19 +77,42 @@ function buyItem(){
             }
         }
     ]).then(function(answer){
-        console.log(answer.item_id);
+        // console.log(answer.item_id);
         connection.query("SELECT * FROM products WHERE id = ?", [answer.item_id], function(err,res){
 
             var stock = res[0].stock_quantity;
+            var product = res[0].product_name;
             if(err) throw err;
             
 
             //check if the specific searched item is still in stock
             if(stock > 0){
                 if(answer.desiredQuantity <= stock){
+                    //calculate total cost of goods
                     var total = res[0].price * answer.desiredQuantity;
-                    // console.log(total);
+                    //additional query to update stock accordingly
+                    console.log("Updating "+ product +" stock quantity...\n");
+                    connection.query(
+                        "UPDATE products SET ? WHERE ?",
+                        [
+                        {
+                            stock_quantity: stock - answer.desiredQuantity
+                        },
+                        {
+                            id: answer.item_id
+                        }
+                        ],
+                        function(err, res) {
+                        console.log(res.affectedRows + " products updated!\n");
+                        // ask if they want to buy again and show the updated database of goods
+                        buyAgain();
+                        }
+                    );
+
+                    
                     console.log("The total cost of your purchase is $" + total + ". Have a great day!")  
+
+                    
                 }
                 else{
                     console.log("\nThat's more than we have available. Try again:")
@@ -104,3 +127,23 @@ function buyItem(){
       
     });
 }
+
+function buyAgain(){
+
+    inquirer.prompt([
+        {
+            message:"\nYou you like to buy another product?",
+            name:"confirm",
+            type:"confirm"
+        }
+    ]).then(function(answer){
+
+        if(answer.confirm){
+            displayProducts();
+        }
+        else{
+            console.log("\nGreat, have a nice day!")
+        }
+    })
+}
+
