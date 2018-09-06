@@ -1,5 +1,6 @@
 var mysql = require("mysql");
 var Table = require("cli-table");
+var inquirer = require("inquirer");
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -42,7 +43,64 @@ function displayProducts() {
             );
         }
         console.log(table.toString());
+        buyItem();
       });
 
       
+}
+
+//prompt the user to choose an item to buy
+function buyItem(){
+    inquirer.prompt([
+        {
+            name: "item_id",
+            type: "input",
+            message: "What is the ID of the product you would like to buy?",
+            validate: function(value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+
+                return false;
+            }
+        },
+        {
+            name: "desiredQuantity",
+            type: "input",
+            message: "How many would you like to buy?",
+            validate: function(value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+    ]).then(function(answer){
+        console.log(answer.item_id);
+        connection.query("SELECT * FROM products WHERE id = ?", [answer.item_id], function(err,res){
+
+            var stock = res[0].stock_quantity;
+            if(err) throw err;
+            
+
+            //check if the specific searched item is still in stock
+            if(stock > 0){
+                if(answer.desiredQuantity <= stock){
+                    var total = res[0].price * answer.desiredQuantity;
+                    // console.log(total);
+                    console.log("The total cost of your purchase is $" + total + ". Have a great day!")  
+                }
+                else{
+                    console.log("\nThat's more than we have available. Try again:")
+                    buyItem();
+                }
+                
+            }
+            else{
+                console.log("Insufficient quantity!");
+            }
+          });
+      
+    });
 }
