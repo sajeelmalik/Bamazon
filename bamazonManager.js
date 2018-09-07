@@ -1,10 +1,15 @@
 //Sajeel Malik
 //Bamazon Manager Portal
 
+//Dependencies
 var mysql = require("mysql");
 var Table = require("cli-table");
 var inquirer = require("inquirer");
+const chalk = require('chalk');
+const chalkAnimation = require('chalk-animation');
+const CFonts = require('cfonts');
 
+//connect to database
 var connection = mysql.createConnection({
     host: "localhost",
 
@@ -19,27 +24,41 @@ var connection = mysql.createConnection({
 //establish a connection with the database so that we can perform commands
 connection.connect(function (err) {
     if (err) throw err;
-    console.log("connected as id " + connection.threadId + "\n");
+    console.log(chalk.bgRedBright("connected as id " + connection.threadId + "\n"));
+    CFonts.say('BAMAZON', {
+        font: 'chrome',              // define the font face
+        align: 'center',              // define text alignment
+        colors: ['red','redBright','white'],         // define all colors
+        background: 'transparent',  // define the background color, you can also use `backgroundColor` here as key
+        letterSpacing: 1.5,           // define letter spacing
+        lineHeight: 2,              // define the line height
+        space: true,                // define if the output text should have empty lines on top and on the bottom
+        maxLength: '0',             // define how many character can be on one line
+    });
+    
     managerPrompt();
 });
 
 function managerPrompt() {
+    console.log("----------------------------------------------")
     inquirer
         .prompt({
             name: "action",
             type: "list",
-            message: "What would you like to do?",
+            message: chalk.bgBlackBright("What would you like to do?"),
             choices: [
                 "View Products for Sale",
                 "View Low Inventory",
                 "Add to Inventory",
-                "Add New Product"
+                "Add New Product",
+                "QUIT"
             ]
         })
         .then(function (answer) {
             switch (answer.action) {
                 case "View Products for Sale":
                     displayProducts();
+                    setTimeout(managerPrompt, 1000); //add timeout to force synchronicity
                     break;
 
                 case "View Low Inventory":
@@ -48,11 +67,15 @@ function managerPrompt() {
 
                 case "Add to Inventory":
                     displayProducts();
-                    addInventory();
+                    setTimeout(addInventory, 1000); //add timeout to force synchronicity
                     break;
 
                 case "Add New Product":
                     addProduct();
+                    break;
+
+                case "QUIT":
+                    connection.end();
                     break;
             }
         });
@@ -64,7 +87,7 @@ function displayProducts() {
         , colWidths: [10, 25, 15, 12, 20]
     });
 
-    console.log("Displaying current storefront...\n");
+    console.log(chalk.bold("\nDisplaying current storefront...\n"));
 
     var query = "SELECT id, product_name, department_name, price, stock_quantity FROM products";
 
@@ -84,7 +107,7 @@ function lowInventory() {
         , colWidths: [10, 25, 15, 12, 20]
     });
 
-    console.log("Displaying low inventory items...\n");
+    console.log(chalk.bold("\nDisplaying low inventory items...\n"));
 
     var query = "SELECT id, product_name, department_name, price, stock_quantity FROM products WHERE stock_quantity < 5";
 
@@ -98,8 +121,9 @@ function lowInventory() {
 
         //compare empty array to false because [] is truthy
         if (res == false) {
-            console.log("There are no low inventory items! We have a healthy stock of goods.");
+            console.log(chalk.green("There are no low inventory items! We have a healthy stock of goods.\n"));
         }
+        managerPrompt();
     });
 }
 
@@ -139,7 +163,7 @@ function addInventory() {
 
 
             //additional query to update stock accordingly
-            console.log("Updating " + product + " stock quantity...\n");
+            console.log(chalk.blue("\nUpdating " + product + " stock quantity...\n"));
             connection.query(
                 "UPDATE products SET ? WHERE ?",
                 [
@@ -151,9 +175,79 @@ function addInventory() {
                     }
                 ],
                 function (err, res) {
-                    console.log(res.affectedRows + " products had their stock replenished!\n");
+                    console.log(chalk.green(res.affectedRows + " products had their stock replenished!\n"));
+                    managerPrompt();
                 }
             );
+        });
+    });
+}
+
+function addProduct() {
+    inquirer.prompt([
+        {
+            name: "name",
+            type: "input",
+            message: "What is the name of the product you would like to add?",
+        },
+        {
+            name: "category",
+            type: "list",
+            message: "What department does it fall under?",
+            choices: [
+                "Books",
+                "Electronics",
+                "Home",
+                "Kitchen",
+                "Sports"
+            ]
+        },
+        {
+            name: "cost",
+            type: "input",
+            message: "How much does it cost?",
+            validate: function (value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+
+                return false;
+            }
+        },
+        {
+            name: "stock",
+            type: "input",
+            message: "How many units are we receiving?",
+            validate: function (value) {
+                if (isNaN(value) === false) {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+    ]).then(function (answer) {
+
+        console.log(chalk.blue("\nInserting " + answer.name + " into database...\n"));
+        // insert new item based on input data
+        var query = "INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ?";
+        var values = [[answer.name, answer.category, parseFloat(answer.cost), parseFloat(answer.stock)]];
+
+        connection.query(query, [values], function (err, res) {
+
+            if (err) throw err;
+            console.log("=================================");
+            console.log("Product: " + answer.name);
+            console.log("Category: " + answer.category);
+            console.log("Price: " + parseFloat(answer.cost));
+            console.log("Stock: " + parseFloat(answer.stock));
+            console.log("=================================");
+
+
+            console.log(chalk.green(res.affectedRows + " new product(s) successfully added!\n"));
+
+            managerPrompt();
+
         });
     });
 }

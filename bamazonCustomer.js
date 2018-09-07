@@ -5,6 +5,7 @@
 var mysql = require("mysql");
 var Table = require("cli-table");
 var inquirer = require("inquirer");
+const chalk = require('chalk');
 
 var connection = mysql.createConnection({
   host: "localhost",
@@ -30,7 +31,7 @@ function displayProducts() {
       , colWidths: [10, 25, 15, 12, 20]
     });
 
-    console.log("Displaying current storefront...\n");
+    console.log(chalk.bold("Displaying current storefront...\n"));
     // connection.query("SELECT * FROM products", function(err, res) {
     //     if (err) throw err;
     //     // Log all results of the SELECT statement
@@ -95,7 +96,7 @@ function buyItem(){
                     //calculate total cost of goods
                     var total = res[0].price * answer.desiredQuantity;
                     //additional query to update stock accordingly
-                    console.log("Updating "+ product +" stock quantity...\n");
+                    console.log("\nUpdating "+ product +" stock quantity...\n");
                     connection.query(
                         "UPDATE products SET ? WHERE ?",
                         [
@@ -107,25 +108,27 @@ function buyItem(){
                         }
                         ],
                         function(err, res) {
-                        console.log(res.affectedRows + " products updated!\n");
+                        console.log(chalk.blue.italic(res.affectedRows + " product(s) updated!\n"));
+                        
+                        console.log("The total cost of your purchase is " + chalk.green("$" + total) + ".") 
                         // ask if they want to buy again and show the updated database of goods
                         buyAgain();
                         }
                     );
 
                     
-                    console.log("The total cost of your purchase is $" + total + ". Have a great day!")  
+                     
 
                     
                 }
                 else{
-                    console.log("\nThat's more than we have available. Try again:")
+                    console.log(chalk.red("\nThat's more than we have available. Try again:"))
                     buyItem();
                 }
                 
             }
             else{
-                console.log("Insufficient quantity!");
+                console.log(chalk.red("Insufficient quantity!"));
             }
           });
       
@@ -146,7 +149,7 @@ function buyAgain(){
             displayProducts();
         }
         else{
-            console.log("\nGreat, have a nice day!")
+            console.log("\nAlright, have a nice day!")
             connection.end();
         }
     })
