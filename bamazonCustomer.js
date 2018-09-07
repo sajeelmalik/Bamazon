@@ -1,3 +1,7 @@
+//Sajeel Malik
+//Bamazon Customer Portal
+
+
 var mysql = require("mysql");
 var Table = require("cli-table");
 var inquirer = require("inquirer");
@@ -132,7 +136,7 @@ function buyAgain(){
 
     inquirer.prompt([
         {
-            message:"\nYou you like to buy another product?",
+            message:"\nWould you like to buy another product?",
             name:"confirm",
             type:"confirm"
         }
@@ -143,6 +147,7 @@ function buyAgain(){
         }
         else{
             console.log("\nGreat, have a nice day!")
+            connection.end();
         }
     })
 }
